@@ -1,0 +1,63 @@
+############################
+# Per-figure generated folders
+############################
+Figure*/data/
+Figure*/figure/
+
+############################
+# Other generated outputs
+############################
+results/
+outputs/
+logs/
+
+############################
+# Generated figures / files
+############################
+*.pdf
+*.png
+*.eps
+*.svg
+
+############################
+# Large external datasets
+############################
+*.json
+*.json.gz
+*.csv
+*.tsv
+*.parquet
+*.h5
+*.hdf5
+
+############################
+# Python artifacts
+############################
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+############################
+# Model / cache files
+############################
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.npz
+
+############################
+# Virtual environments
+############################
+.venv/
+env/
+.env
+
+############################
+# OS / IDE junk
+############################
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
