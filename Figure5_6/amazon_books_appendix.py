@@ -2,51 +2,60 @@
 # -*- coding: utf-8 -*-
 
 """
-amazon_books_appendix.py  (END-TO-END + PLOT-ONLY)
+amazon_books_appendix.py — Amazon Books appendix pipeline (Figures 5–6).
 
-Runs the full Amazon Books appendix pipeline OR a plot-only mode.
+This script builds aggregate-time signals for Amazon Books items and produces:
+  - Fig. 5: exemplar time series (weekly n_t, raw W1, corrected d_t, cumulative D_t)
+  - Fig. 6: cohort CDF summaries across eligible items
 
-Full pipeline:
-  1) Read eligible ASINs (from eligible_asins.txt)
-  2) Scan Books.json.gz reviews -> build per-ASIN weekly rating histograms (5-star bins)
-  3) Choose baseline weeks per ASIN (first K valid weeks) to build global H0
-  4) Build baseline correction table b(n) via multinomial MC under H0
-  5) Compute per-ASIN weekly W1, d_t = W1 - b(n_t), and cumulative D_t = sum d_t
-  6) Compute item metrics (qh, ql, Q=qh-ql, drift, energy, etc.) and write CSVs
-  7) Plot Figure 5 (4 exemplars x 4 rows) + Figure 6 (CDFs)
+Modes:
+  1) Full pipeline (default):
+     a) Read eligible ASINs (eligible_asins.txt) and titles (usable_meta_books.csv)
+     b) Stream-scan Books.json.gz reviews to build per-ASIN weekly 5-star histograms
+     c) Build a global reference histogram H0 from the first K valid weeks per ASIN
+     d) Estimate baseline table b(n) via multinomial Monte Carlo under H0
+     e) For each ASIN-week: compute W1, corrected increment d_t = W1 - b(n_t),
+        and cumulative D_t = sum_{s<=t} d_s
+     f) Write weekly and item-level CSVs, select exemplars, and plot Fig. 5 + Fig. 6
 
-Plot-only mode (NEW):
-  - Skip steps 2–6 entirely.
-  - Read existing CSVs from --outdir:
-      amazon_weekly_scores.csv
-      amazon_item_metrics.csv
-  - Re-select exemplars (no famous titles; no duplicate controls)
-  - Re-plot Fig 5 + A2
+  2) Plot-only mode (--plot-only):
+     - Skip scan/MC/metrics computation.
+     - Read existing CSVs in --outdir and re-plot Fig. 5 + Fig. 6.
+     - Exemplar selection is repeated from amazon_item_metrics.csv and uses title
+       canonicalization to avoid duplicate editions in controls.
 
-Requested updates implemented:
-  (1) Avoid famous / iconic titles for TOP exemplars (configurable keywords).
-  (2) Controls are guaranteed to be DISTINCT books (by canonicalized title).
-  (3) Use LaTeX fonts (Computer Modern) for plotting (toggle with --no-tex).
-  (4) Publication-quality figure styling (linewidths, ticks, spines, DPI, tight bbox).
-  (5) Plot-only mode via --plot-only.
+Inputs:
+  - Books.json.gz                 (required in full mode)
+  - eligible_asins.txt            (one ASIN per line)
+  - usable_meta_books.csv         (must include columns: asin,title)
 
-INPUTS:
-  - Books.json.gz                (Amazon review file, json lines, gzipped)  [full mode only]
-  - eligible_asins.txt           (one ASIN per line)
-  - usable_meta_books.csv        (meta CSV with at least columns: asin,title)
+Outputs (written to --outdir):
+  - amazon_weekly_hist.csv        (full mode)
+  - amazon_weekly_scores.csv      (full mode; per-ASIN weekly W1/d_t/D_t)
+  - amazon_item_metrics.csv       (full mode; per-ASIN summary metrics for selection)
+  - fig5_Amazon_exemplars.(png|pdf)
+  - fig6_Amazon_cdf.(png|pdf)
+  - (optional) oracle_runs/<ASIN>/{meta.json,intervals.csv}  (see --mode)
 
-OUTPUTS (written to --outdir):
-  - amazon_weekly_hist.csv            [full mode]
-  - amazon_weekly_scores.csv          [full mode]
-  - amazon_item_metrics.csv           [full mode]
-  - fig5_exemplars.(png|pdf)
-  - fig6_cdf.(png|pdf)
+Usage:
+  # Full pipeline (Linux/macOS)
+  python amazon_books_appendix.py --reviews Books.json.gz --eligible eligible_asins.txt \
+      --meta usable_meta_books.csv --outdir out/
 
-Windows CMD (full):
-  py amazon_books_appendix.py --reviews Books.json.gz --eligible eligible_asins.txt --meta usable_meta_books.csv --outdir .
+  # Full pipeline (Windows)
+  py amazon_books_appendix.py --reviews Books.json.gz --eligible eligible_asins.txt ^
+      --meta usable_meta_books.csv --outdir out
 
-Windows CMD (plot-only):
-  py amazon_books_appendix.py --eligible eligible_asins.txt --meta usable_meta_books.csv --outdir . --plot-only
+  # Plot-only mode (reuse existing CSVs)
+  python amazon_books_appendix.py --eligible eligible_asins.txt --meta usable_meta_books.csv \
+      --outdir out/ --plot-only
+
+Notes:
+  - Week aggregation uses unixReviewTime binned to weeks; only weeks with n_t >= --min-weekly-n are kept.
+  - W1 is computed on the 5-star line via CDF differences (bins are {1,2,3,4,5}).
+  - Baseline correction uses b(n) estimated under H0 and nearest-n lookup for unseen n_t.
+  - If LaTeX text rendering fails, rerun with --no-tex.
+
 """
 
 import argparse
@@ -618,7 +627,7 @@ def load_for_plot_only(outdir: str):
 
 
 # ============================================================
-# Oracle export helpers (new, Feb 2026)
+# Optional oracle export helpers
 # ============================================================
 def emit_oracle_run_for_asin(
     out_root: str,

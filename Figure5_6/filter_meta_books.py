@@ -1,3 +1,33 @@
+"""filter_meta_books.py — Filter Amazon Books metadata into a compact CSV.
+
+Purpose:
+  Stream-scan a gzipped JSON-lines metadata file and keep only “usable” entries,
+  optionally restricted to a provided ASIN list.
+
+Typical use in the Fig. 5–6 pipeline:
+  1) Run scan_reviews_books_eligibility.py to produce eligible_asins.txt
+  2) Run this script on meta_Books.json.gz to produce usable_meta_books.csv
+  3) Optionally run filter_meta_by_asins.py to subset usable_meta_books.csv to eligible ASINs
+
+Inputs:
+  --input     path to meta_Books.json.gz (JSON lines, gzipped)
+  --asin-list optional eligible_asins.txt to restrict output to a cohort
+
+Output:
+  --output    CSV with at least columns: asin,title (plus a few helpful metadata fields)
+
+Usage:
+  python filter_meta_books.py --input meta_Books.json.gz --output usable_meta_books.csv
+  python filter_meta_books.py --input meta_Books.json.gz --output usable_meta_books.csv --asin-list eligible_asins.txt
+
+Notes:
+  - Filters are controlled by flags:
+      --require-books-category / --no-require-books-category
+      --require-nonempty-title / --no-require-nonempty-title
+      --require-nonempty-description
+      --require-positive-price
+"""
+
 import argparse
 import csv
 import gzip

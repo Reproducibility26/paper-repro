@@ -1,28 +1,32 @@
 #!/usr/bin/env python3
 """
-scan_reviews_books_eligibility.py
+scan_reviews_books_eligibility.py — Identify eligible ASINs for Amazon Books weekly aggregation.
 
-Streaming scan of Amazon Books reviews JSON.GZ (SNAP format) to find "eligible" ASINs
-for stable aggregate-time experiments.
+Purpose:
+  Stream-scan a gzipped JSON-lines reviews file and compute per-ASIN:
+    - total_reviews
+    - number of distinct weeks observed
+    - number of “valid” weeks (weekly count n_t >= --n-min)
+    - maximum weekly count
 
-Outputs:
-  1) eligible_asins.txt   (one ASIN per line)
-  2) asin_stats.csv       (summary stats per ASIN; useful for debugging / selection)
+An ASIN is marked eligible if:
+  total_reviews >= --min-total  AND  valid_weeks >= --min-valid-weeks
 
-Eligibility rule (tunable):
-  - total_reviews >= MIN_TOTAL_REVIEWS
-  - valid_weeks >= MIN_VALID_WEEKS
-where "valid week" means weekly count n_t >= N_MIN.
+Outputs (written to --outdir):
+  - eligible_asins.txt     (one ASIN per line)
+  - asin_stats.csv         (per-ASIN summary statistics)
 
-Windows cmd examples:
-  py scan_reviews_books_eligibility.py --input reviews_Books_5.json.gz --outdir .
+Usage:
+  python scan_reviews_books_eligibility.py --input reviews_Books_*.json.gz --outdir out/
 
-  py scan_reviews_books_eligibility.py --input reviews_Books_5.json.gz ^
-     --outdir . --time-bin W --n-min 30 --min-total 500 --min-valid-weeks 52
+  # Tighter eligibility:
+  python scan_reviews_books_eligibility.py --input reviews_Books_*.json.gz --outdir out/ \
+      --n-min 30 --min-total 500 --min-valid-weeks 52
 
 Notes:
-- This script ONLY counts reviews and weekly volumes per ASIN (fast + memory-safe).
-- It does NOT compute histograms or W1; that's the next step after filtering.
+  - This script only counts reviews and weekly volumes per ASIN (fast, single pass).
+  - It does not build star histograms or compute W1; use amazon_books_appendix.py next.
+
 """
 
 import argparse

@@ -1,3 +1,21 @@
+"""filter_meta_by_asins.py — Subset a meta CSV to an ASIN cohort.
+
+Purpose:
+  Given a meta CSV (e.g., usable_meta_books.csv) and an ASIN list (eligible_asins.txt),
+  write a smaller meta CSV containing only rows whose ASIN is in the list.
+
+Inputs:
+  --meta-csv    usable_meta_books.csv (must have a column named "asin")
+  --asin-list   eligible_asins.txt (one ASIN per line)
+
+Output:
+  --out-csv     eligible_meta_books.csv (subset of meta-csv)
+
+Usage:
+  python filter_meta_by_asins.py --meta-csv usable_meta_books.csv \
+      --asin-list eligible_asins.txt --out-csv eligible_meta_books.csv
+"""
+
 import argparse, csv
 
 def load_asins(path: str) -> set[str]:
